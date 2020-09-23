@@ -1,0 +1,87 @@
+#include <Wire.h> 
+#include <LiquidCrystal_I2C.h>
+#include "max6675.h"
+
+int plusButton = 3;
+int minusButton = 2;
+int thermoDO = 4;
+int thermoCS = 5;
+int thermoCLK = 6;
+float delta = 1.0;
+float T0;
+float T;
+int n;
+
+MAX6675 thermocouple(thermoCLK, thermoCS, thermoDO);
+LiquidCrystal_I2C lcd(0x27,20,4);
+
+void setup()
+{
+    lcd.init();
+    lcd.backlight();
+    lcd.print("Oven");
+    T0 = 130.0;
+    pinMode(7, OUTPUT);
+   // pinMode(plusButton, INPUT);
+   // pinMode(minusButton, INPUT);
+    Serial.begin(9600);
+    Serial.println("Oven start");
+    n = 0;
+    T = thermocouple.readCelsius();
+    delay(2000);
+    
+}
+
+void loop()
+{
+// считывание с кнопок базовой температуры, если есть сигннал
+//
+    if (digitalRead(plusButton) == HIGH) {
+        T0 = T0 + 5; 
+    }
+    if (digitalRead(minusButton) == HIGH) {
+        T0 = T0 + 5; 
+    }
+    lcd.setCursor(0,0);
+    lcd.print("Time: ");
+    lcd.print(millis()/1000.0/60.0, 1);
+    lcd.print(" min");
+    Serial.print(millis()/1000.0/60.0, 1);
+    Serial.println(" min");
+
+    lcd.setCursor(1,0);
+    if (n > 10) {
+        T = thermocouple.readCelsius();
+        n = 0;
+    }
+    n = n + 1;
+    if (T0 - T > delta) {
+        digitalWrite(LED_BUILTIN, HIGH);
+        digitalWrite(7, HIGH);  
+        Serial.println("ON  ");
+        lcd.print("ON  "); 
+    }
+    if (T0 - T < - delta) {
+        digitalWrite(LED_BUILTIN, LOW);
+        digitalWrite(7, LOW);  
+        Serial.println("OFF ");
+        lcd.print("OFF ");
+    }
+    lcd.setCursor(2,0);  
+    Serial.print("Purpose: ");
+    Serial.print(T0);
+    Serial.println(" degC");
+    lcd.print("Purpose: ");
+    lcd.print(T0);
+    lcd.print(" degC");
+
+    lcd.setCursor(3,0); 
+    Serial.print("Sensor: ");
+    Serial.print(T);
+    Serial.println(" degC");
+    lcd.print("Sensor: ");
+    lcd.print(T);
+    lcd.print(" degC");
+    Serial.println();
+    delay(100);
+}
